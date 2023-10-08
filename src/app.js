@@ -58,7 +58,53 @@ var data;
     console.log('Link not found', error);
   }
 
-  // handle password ------------------
+// handle password ------------------
+  try {
+    const passwordField = await createMailPage.locator('#PasswordInput').fill(data.password);
+    await createMailPage.keyboard.press('Enter');
+  } catch (error) {
+    console.log('Password enter failed.');
+  }
+
+
+// handle name field -----------------
+try {
+  await createMailPage.locator('#FirstName').fill(data.givenname);
+  await createMailPage.locator('#LastName').fill(data.surname);
+  await createMailPage.keyboard.press('Enter');
+} catch (error) {
+  console.log('Error on first name and last name field.');
+}
+
+
+// handle country and birthdate ----------------- 
+try {
+  await createMailPage.getByLabel('Country/region').selectOption('United States');
+  // handle birth date 
+  const [month, day, year] = data.birthday.split('/');
+  // console.log('month ,date, year', month, typeof day, year);
+  await createMailPage.locator('#BirthMonth').selectOption({ value: month});
+  await createMailPage.locator('#BirthDay').selectOption({ value: day});
+  await createMailPage.locator('#BirthYear').click();
+  await createMailPage.keyboard.type(year, { delay: 150});
+  await createMailPage.keyboard.press('Enter');
+} catch (error) {
+  
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 //   const claimRandom = await createMailPage.waitForSelector("text=Someone already has this email address", {
 //     timeout: 10000,
 //   });
