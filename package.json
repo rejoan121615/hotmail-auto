@@ -10,12 +10,16 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@playwright/test": "^1.38.1",
     "@types/node": "^20.8.0",
     "nodemon": "^3.0.1"
   },
   "dependencies": {
+    "@playwright/test": "^1.38.1",
     "mysql2": "^3.6.1",
+    "playwright": "^1.38.1",
+    "playwright-chromium": "^1.38.1",
+    "playwright-firefox": "^1.38.1",
+    "playwright-webkit": "^1.38.1",
     "sequelize": "^6.33.0"
   }
 }
