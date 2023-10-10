@@ -36,24 +36,52 @@ const fs = require("fs");
     {
       headless: false,
       args: [
-        // `--disable-extensions-except=${vpnExtensionPath},${captchaExtensionPath}`,
-        // `--disable-extensions-except=${captchaExtensionPath}`,
-        // `--load-extension=${vpnExtensionPath}`,
-        // `--load-extension=${captchaExtensionPath}`,
+        `--disable-extensions-except=${vpnExtensionPath}`,
+        `--load-extension=${vpnExtensionPath}`,
       ],
     }
   );
 
-  const context = await browser.newContext();
-  
+  // connect vpn with browser -----------
+  const vpnPage = await browser.newPage();
+  try {
+    await vpnPage.goto(
+      "chrome-extension://hhikeafcpmgjnkhoimhlejpgngkbjmfk/popup.html"
+    );
+  } catch (error) {
+    console.log('getting error on page load', error);
+  }
+ 
+  if (vpnPage) {
+    try {
+      const vpnLoginBtn = await vpnPage.waitForSelector("text=Login", {
+        timeout: 5000,
+      });
+      await vpnLoginBtn.click();
+    } catch (error) {
+      console.log("Handle login error");
+    }
+  }
 
-  // goto hotmail
-  const createMailPage = await browser.newPage();
-  await createMailPage.goto("https://signup.live.com/signup");
-  const createAccoLink = await createMailPage.getByRole("link", {
-    name: "Get a new email address",
-  });
-  await createAccoLink.click();
+  //  fill out the login form
+  try {
+    const vpnUserName = await vpnPage.$('input[name="username"]');
+    await vpnUserName.fill("rejoan121615");
+    const vpnPassword = await vpnPage.$('input[name="password"]');
+    await vpnPassword.fill("@1h2M3e4d5");
+    const vpnSubmitBtn = await vpnPage.$('button[type="submit"]');
+    await vpnSubmitBtn.click();
+  } catch (error) {
+    console.log("vpn login form fill up failed", error);
+  }
+
+  // goto hotmail --------------
+  // const createMailPage = await browser.newPage();
+  // await createMailPage.goto("https://signup.live.com/signup");
+  // const createAccoLink = await createMailPage.getByRole("link", {
+  //   name: "Get a new email address",
+  // });
+  // await createAccoLink.click();
 
   // // type your new email address ----------------
   // const newEmailField = await createMailPage.locator("input").first();
@@ -143,11 +171,11 @@ const fs = require("fs");
   // }
 
   // clear user data on browser close --------------
-  // await new Promise((resolve) =>
-  //   setTimeout(async () => {
-  //     await browser.close();
-  //     AssistFunction.deleteUserDataDir();
-  //     resolve();
-  //   }, 5000)
-  // );
+  await new Promise((resolve) =>
+    setTimeout(async () => {
+      await browser.close();
+      AssistFunction.deleteUserDataDir();
+      resolve();
+    }, 15000)
+  );
 })();

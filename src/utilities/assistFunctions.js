@@ -8,6 +8,8 @@ exports.TypeEmail = async (page, data = "", delay = 150) => {
   await page.keyboard.press("Enter");
 };
 
+
+
 // delete browser data file 
 exports.deleteUserDataDir = async (folder = 'browsers') => {
   const userDataDir = path.join(__dirname, '../../browsers');
