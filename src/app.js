@@ -5,6 +5,7 @@ const { chromium } = require("playwright");
 const AssistFunction = require("./utilities/assistFunctions");
 const path = require("path");
 const fs = require("fs");
+const store = require('store');
 
 // syncronize models
 // sequelize.sync();
@@ -30,50 +31,83 @@ const fs = require("fs");
   // console.log(captchaExtensionPath);
 
   // throw Error;
-  // start browser ----------------------
+
+  // start browser ------------------------------------------
   const browser = await chromium.launchPersistentContext(
     path.join(__dirname, "../browsers"),
     {
       headless: false,
       args: [
-        `--disable-extensions-except=${vpnExtensionPath}`,
+        `--disable-extensions-except=${vpnExtensionPath},${captchaExtensionPath}`,
         `--load-extension=${vpnExtensionPath}`,
+        `--load-extension=${captchaExtensionPath}`,
       ],
     }
   );
 
-  // connect vpn with browser -----------
-  const vpnPage = await browser.newPage();
-  try {
-    await vpnPage.goto(
-      "chrome-extension://hhikeafcpmgjnkhoimhlejpgngkbjmfk/popup.html"
-    );
-  } catch (error) {
-    console.log('getting error on page load', error);
-  }
- 
-  if (vpnPage) {
+  // goto extension manager page ------------------------------
+  const ExtensionManager = async () => {
     try {
-      const vpnLoginBtn = await vpnPage.waitForSelector("text=Login", {
-        timeout: 5000,
-      });
-      await vpnLoginBtn.click();
+      const extManagerPage = await browser.newPage();
+      await extManagerPage.goto("chrome://extensions/");
+      // get the vpn extension id
+      try {
+        await extManagerPage.waitForLoadState("load");
+        const listOfExtensionId = await extManagerPage.$$(
+          "#content-wrapper extensions-item"
+        );
+        // waitForSelector('#content-wrapper extensions-item');
+        if (listOfExtensionId.length) {
+          const idArray = [];
+          for (const element of listOfExtensionId) {
+            const id = await element.getAttribute("id");
+            idArray.push(id);
+          }
+          store.set('extId', {captcha: idArray[0], vpn: idArray[1]});
+        }
+      } catch (error) {
+        console.log("Error on getting and setting extension id");
+      }
     } catch (error) {
-      console.log("Handle login error");
+      console.log("Extension manager page load fail");
+      await browser.close();
     }
-  }
+  };
+
+  await ExtensionManager();
+
+  // connect vpn with browser -----------
+  // const vpnPage = await browser.newPage();
+  // try {
+  //   await vpnPage.goto(
+  //     "chrome-extension://hhikeafcpmgjnkhoimhlejpgngkbjmfk/popup.html"
+  //   );
+  // } catch (error) {
+  //   console.log('getting error on page load', error);
+  // }
+
+  // if (vpnPage) {
+  //   try {
+  //     const vpnLoginBtn = await vpnPage.waitForSelector("text=Login", {
+  //       timeout: 5000,
+  //     });
+  //     await vpnLoginBtn.click();
+  //   } catch (error) {
+  //     console.log("Handle login error");
+  //   }
+  // }
 
   //  fill out the login form
-  try {
-    const vpnUserName = await vpnPage.$('input[name="username"]');
-    await vpnUserName.fill("rejoan121615");
-    const vpnPassword = await vpnPage.$('input[name="password"]');
-    await vpnPassword.fill("@1h2M3e4d5");
-    const vpnSubmitBtn = await vpnPage.$('button[type="submit"]');
-    await vpnSubmitBtn.click();
-  } catch (error) {
-    console.log("vpn login form fill up failed", error);
-  }
+  // try {
+  //   const vpnUserName = await vpnPage.$('input[name="username"]');
+  //   await vpnUserName.fill("rejoan121615");
+  //   const vpnPassword = await vpnPage.$('input[name="password"]');
+  //   await vpnPassword.fill("@1h2M3e4d5");
+  //   const vpnSubmitBtn = await vpnPage.$('button[type="submit"]');
+  //   await vpnSubmitBtn.click();
+  // } catch (error) {
+  //   console.log("vpn login form fill up failed", error);
+  // }
 
   // goto hotmail --------------
   // const createMailPage = await browser.newPage();
@@ -176,6 +210,6 @@ const fs = require("fs");
       await browser.close();
       AssistFunction.deleteUserDataDir();
       resolve();
-    }, 15000)
+    }, 150000)
   );
 })();
