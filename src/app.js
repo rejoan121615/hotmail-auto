@@ -5,7 +5,8 @@ const { chromium } = require("playwright");
 const AssistFunction = require("./utilities/assistFunctions");
 const path = require("path");
 const fs = require("fs");
-const store = require('store');
+const store = require("store");
+require("dotenv").config();
 
 // syncronize models
 // sequelize.sync();
@@ -63,51 +64,68 @@ const store = require('store');
             const id = await element.getAttribute("id");
             idArray.push(id);
           }
-          store.set('extId', {captcha: idArray[0], vpn: idArray[1]});
+          await store.set("extId", { captcha: idArray[0], vpn: idArray[1] });
         }
+        await extManagerPage.waitForLoadState("domcontentloaded");
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        // running this for vpn login  after loading extension manager
+        await VpnConnector();
       } catch (error) {
         console.log("Error on getting and setting extension id");
+        await AssistFunction.ClearClose(browser);
       }
     } catch (error) {
       console.log("Extension manager page load fail");
-      await browser.close();
+      await AssistFunction.ClearClose(browser);
     }
   };
 
   await ExtensionManager();
 
   // connect vpn with browser -----------
-  // const vpnPage = await browser.newPage();
-  // try {
-  //   await vpnPage.goto(
-  //     "chrome-extension://hhikeafcpmgjnkhoimhlejpgngkbjmfk/popup.html"
-  //   );
-  // } catch (error) {
-  //   console.log('getting error on page load', error);
-  // }
-
-  // if (vpnPage) {
-  //   try {
-  //     const vpnLoginBtn = await vpnPage.waitForSelector("text=Login", {
-  //       timeout: 5000,
-  //     });
-  //     await vpnLoginBtn.click();
-  //   } catch (error) {
-  //     console.log("Handle login error");
-  //   }
-  // }
-
-  //  fill out the login form
-  // try {
-  //   const vpnUserName = await vpnPage.$('input[name="username"]');
-  //   await vpnUserName.fill("rejoan121615");
-  //   const vpnPassword = await vpnPage.$('input[name="password"]');
-  //   await vpnPassword.fill("@1h2M3e4d5");
-  //   const vpnSubmitBtn = await vpnPage.$('button[type="submit"]');
-  //   await vpnSubmitBtn.click();
-  // } catch (error) {
-  //   console.log("vpn login form fill up failed", error);
-  // }
+  async function VpnConnector() {
+    try {
+      const vpnPage = await browser.newPage();
+      await vpnPage.goto(
+        `chrome-extension://${store.get("extId").vpn}/popup.html`
+      );
+      // if (vpnPage) {
+        try {
+          // await vpnPage.waitForLoadState("load");
+          const vpnLoginBtn = await vpnPage.waitForSelector("text=Login");
+          await vpnLoginBtn.click();
+          // login form fill-up error
+          try {
+            const vpnUserName = await vpnPage.$('input[name="username"]');
+            await vpnUserName.fill(process.env.vpn_username);
+            const vpnPassword = await vpnPage.$('input[name="password"]');
+            await vpnPassword.fill(process.env.vpn_password);
+            const vpnSubmitBtn = await vpnPage.$('button[type="submit"]');
+            await vpnSubmitBtn.click();
+            // skip the wellcome text
+            try {
+              const skipBtn = await vpnPage.waitForSelector(
+                'button:has-text("Skip")'
+              );
+              await skipBtn.click();
+            } catch (error) {
+              console.log("error on handeling vpn skip button");
+              await AssistFunction.ClearClose(browser);
+            }
+          } catch (error) {
+            console.log("vpn login form fill up failed", error);
+            await AssistFunction.ClearClose(browser);
+          }
+        } catch (error) {
+          console.log("Handle login error");
+          await AssistFunction.ClearClose(browser);
+        }
+      // }
+    } catch (error) {
+      console.log("vpn extension page loading error", error);
+      await AssistFunction.ClearClose(browser);
+    }
+  }
 
   // goto hotmail --------------
   // const createMailPage = await browser.newPage();
@@ -205,11 +223,12 @@ const store = require('store');
   // }
 
   // clear user data on browser close --------------
-  await new Promise((resolve) =>
-    setTimeout(async () => {
-      await browser.close();
-      AssistFunction.deleteUserDataDir();
-      resolve();
-    }, 150000)
-  );
+  // await new Promise((resolve) =>
+  //   setTimeout(async () => {
+  //     await browser.close();
+  //     AssistFunction.deleteUserDataDir();
+  //     resolve();
+  //   }, 15000)
+  // );
+  await AssistFunction.ClearClose(browser, 15000);
 })();
